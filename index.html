@@ -399,7 +399,7 @@
               <i class="fa fa-cubes text-xl text-blue-500"></i>
             </div>
             <div>
-              <h1 class="text-lg font-semibold text-gray-800">库存销售管理系统</h1>
+              <h1 class="text-lg font-semibold text-gray-800">库存管理系统</h1>
               <p class="text-xs text-gray-500">Gestão de estoque</p>
             </div>
           </div>
@@ -1940,9 +1940,18 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
           throw selectError;
         }
         
+        // 确保数据被正确序列化
+        let serializedData;
+        try {
+          serializedData = typeof inventoryData === 'string' ? inventoryData : JSON.stringify(inventoryData);
+        } catch (stringifyError) {
+          console.error('数据序列化失败:', stringifyError);
+          return false;
+        }
+        
         const dataToSave = {
-          data: inventoryData,
-          images: productImages,
+          data: serializedData,
+          created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         };
         
@@ -1950,7 +1959,10 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
           // 如果存在数据，使用update
           const { data, error } = await supabase
             .from('inventory_data')
-            .update(dataToSave)
+            .update({
+              data: dataToSave.data,
+              updated_at: dataToSave.updated_at
+            })
             .eq('id', existingData[0].id);
             
           if (error) throw error;
@@ -1980,11 +1992,11 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
       }
       
       try {
-        // 获取最新的数据记录（按更新时间排序）
+        // 获取最新的数据记录（按创建时间排序）
         const { data, error } = await supabase
           .from('inventory_data')
           .select('*')
-          .order('updated_at', { ascending: false })
+          .order('created_at', { ascending: false })
           .limit(1);
           
         if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
@@ -1993,11 +2005,27 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
         
         if (data && data.length > 0) {
           const record = data[0];
-          inventoryData = record.data || [];
-          productImages = record.images || {};
-          lastSyncTime = record.updated_at;
-          console.log('从云端加载数据成功');
-          return true;
+          try {
+            // 处理不同的数据格式
+            if (typeof record.data === 'string') {
+              inventoryData = JSON.parse(record.data);
+            } else if (Array.isArray(record.data)) {
+              inventoryData = record.data;
+            } else if (typeof record.data === 'object' && record.data !== null) {
+              inventoryData = record.data;
+            } else {
+              console.error('未知的数据格式:', typeof record.data);
+              return false;
+            }
+            
+            lastSyncTime = record.created_at || record.updated_at;
+            console.log('从云端加载数据成功，数据类型:', typeof record.data, '记录数:', inventoryData.length);
+            return true;
+          } catch (parseError) {
+            console.error('数据解析失败:', parseError);
+            console.log('原始数据:', record.data);
+            return false;
+          }
         }
         
         return false;
@@ -2666,7 +2694,17 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
       updateSyncStatus('正在从云端加载数据...', 'syncing');
       
       try {
-        const loadSuccess = await loadFromSupabase();
+        const deviceInfo = detectDeviceCapabilities();
+        let loadSuccess;
+        
+        // 根据设备性能选择加载策略
+        if (deviceInfo.memoryLimit || deviceInfo.isMobile) {
+          console.log('使用移动端优化加载策略');
+          loadSuccess = await loadFromSupabaseMobileOptimized();
+        } else {
+          console.log('使用标准加载策略');
+          loadSuccess = await loadFromSupabase();
+        }
         
         if (loadSuccess) {
           // 更新界面
@@ -2674,7 +2712,12 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
           updateStatistics();
           saveToLocalStorage(); // 同时保存到本地
           updateSyncStatus('从云端加载数据成功', 'success');
-          alert('数据已从云端成功加载！');
+          
+          if (deviceInfo.isMobile) {
+            alert('数据已从云端成功加载！\n(使用移动端优化模式)');
+          } else {
+            alert('数据已从云端成功加载！');
+          }
         } else {
           updateSyncStatus('云端没有数据', 'warning');
           alert('云端没有找到数据，请先进行同步操作。');
@@ -2682,7 +2725,29 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
       } catch (error) {
         console.error('从云端加载数据失败:', error);
         updateSyncStatus('从云端加载失败', 'error');
-        alert('从云端加载数据失败，请检查网络连接和数据库配置。');
+        
+        // 如果是移动设备，尝试降级加载
+        const deviceInfo = detectDeviceCapabilities();
+        if (deviceInfo.isMobile) {
+          try {
+            console.log('尝试降级加载策略');
+            const fallbackSuccess = await loadFromSupabaseFallback();
+            if (fallbackSuccess) {
+              updateAllTables();
+              updateStatistics();
+              saveToLocalStorage();
+              updateSyncStatus('降级加载成功', 'success');
+              alert('数据已从云端成功加载！\n(使用降级模式)');
+            } else {
+              alert('从云端加载数据失败，请检查网络连接和数据库配置。');
+            }
+          } catch (fallbackError) {
+            console.error('降级加载也失败:', fallbackError);
+            alert('从云端加载数据失败，请检查网络连接和数据库配置。');
+          }
+        } else {
+          alert('从云端加载数据失败，请检查网络连接和数据库配置。');
+        }
       } finally {
         // 恢复桌面端按钮
         if (loadBtn) {
@@ -3110,18 +3175,72 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
       console.log('建议数据已加载');
     }
     
-    // 同步数据函数
+    // 检测设备类型和性能
+    function detectDeviceCapabilities() {
+      const userAgent = navigator.userAgent;
+      
+      // 更精确的设备检测
+      const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+      const isAndroid = /Android/.test(userAgent);
+      const isIPad = /iPad/.test(userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isIPhone = /iPhone/.test(userAgent);
+      const isTablet = isIPad || (/Android/.test(userAgent) && !/Mobile/.test(userAgent));
+      const isMobile = (isIOS || isAndroid) && !isTablet;
+      
+      // 估算设备性能
+      let devicePerformance = 'high';
+      if (isIPhone || (isAndroid && isMobile)) {
+        devicePerformance = 'low';
+      } else if (isTablet) {
+        devicePerformance = 'medium';
+      }
+      
+      // 检测内存限制
+      let memoryLimit = false;
+      if ('memory' in performance) {
+        const memory = performance.memory;
+        const heapLimit = memory.jsHeapSizeLimit / 1024 / 1024; // MB
+        if (heapLimit < 1000) { // 小于1GB
+          memoryLimit = true;
+        }
+      } else if (isMobile) {
+        memoryLimit = true; // 假设移动设备有内存限制
+      }
+      
+      return {
+        isIPad,
+        isIPhone,
+        isAndroid,
+        isTablet,
+        isMobile,
+        devicePerformance,
+        memoryLimit,
+        userAgent
+      };
+    }
+    
+    // 优化的同步数据函数
     async function syncData() {
       if (!supabase) {
         console.log('Supabase未初始化，跳过自动同步');
         return;
       }
       
+      const deviceInfo = detectDeviceCapabilities();
+      
       try {
         updateSyncStatus('同步中', 'syncing');
         
-        // 尝试从云端加载数据
-        const cloudData = await loadFromSupabase();
+        // 根据设备性能选择同步策略
+        let cloudData;
+        if (deviceInfo.memoryLimit || deviceInfo.isMobile) {
+          console.log('使用移动端优化同步策略');
+          cloudData = await loadFromSupabaseMobileOptimized();
+        } else {
+          console.log('使用标准同步策略');
+          cloudData = await loadFromSupabase();
+        }
+        
         if (cloudData) {
           updateAllTables();
           updateStatistics();
@@ -3132,6 +3251,136 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
       } catch (error) {
         console.error('自动同步失败:', error);
         updateSyncStatus('同步失败', 'error');
+        
+        // 如果是移动设备，尝试降级同步
+        if (deviceInfo.isMobile) {
+          console.log('尝试降级同步策略');
+          try {
+            const fallbackData = await loadFromSupabaseFallback();
+            if (fallbackData) {
+              updateAllTables();
+              updateStatistics();
+              updateSyncStatus('降级同步成功', 'success');
+            }
+          } catch (fallbackError) {
+            console.error('降级同步也失败:', fallbackError);
+          }
+        }
+      }
+    }
+    
+    // 移动端优化的数据加载函数
+    async function loadFromSupabaseMobileOptimized() {
+      try {
+        console.log('开始移动端优化数据加载...');
+        
+        // 分批加载，减少内存压力
+        const batchSize = 50;
+        let allData = [];
+        let offset = 0;
+        let hasMore = true;
+        
+        while (hasMore) {
+          const { data: batchData, error } = await supabase
+            .from('inventory_data')
+            .select('*')
+            .range(offset, offset + batchSize - 1)
+            .order('id');
+          
+          if (error) {
+            throw error;
+          }
+          
+          if (!batchData || batchData.length === 0) {
+            hasMore = false;
+          } else {
+            allData = allData.concat(batchData);
+            offset += batchSize;
+            
+            // 给浏览器一些时间处理其他任务
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // 如果数据量过大，停止加载
+            if (allData.length > 500) {
+              console.log('数据量过大，停止加载以保护设备性能');
+              break;
+            }
+          }
+        }
+        
+        if (allData.length > 0) {
+          const latestData = allData[allData.length - 1];
+          try {
+            // 处理不同的数据格式
+            if (typeof latestData.data === 'string') {
+              inventoryData = JSON.parse(latestData.data);
+            } else if (Array.isArray(latestData.data)) {
+              inventoryData = latestData.data;
+            } else if (typeof latestData.data === 'object' && latestData.data !== null) {
+              inventoryData = latestData.data;
+            } else {
+              console.error('移动端未知的数据格式:', typeof latestData.data);
+              return false;
+            }
+            
+            console.log(`移动端优化加载完成，共 ${allData.length} 条记录，数据类型:`, typeof latestData.data);
+            return true;
+          } catch (parseError) {
+            console.error('移动端数据解析失败:', parseError);
+            console.log('移动端原始数据:', latestData.data);
+            return false;
+          }
+        }
+        
+        return false;
+      } catch (error) {
+        console.error('移动端优化加载失败:', error);
+        throw error;
+      }
+    }
+    
+    // 降级同步函数（仅加载最新数据）
+    async function loadFromSupabaseFallback() {
+      try {
+        console.log('开始降级同步...');
+        
+        const { data, error } = await supabase
+          .from('inventory_data')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(1);
+        
+        if (error) {
+          throw error;
+        }
+        
+        if (data && data.length > 0) {
+          try {
+            const record = data[0];
+            // 处理不同的数据格式
+            if (typeof record.data === 'string') {
+              inventoryData = JSON.parse(record.data);
+            } else if (Array.isArray(record.data)) {
+              inventoryData = record.data;
+            } else if (typeof record.data === 'object' && record.data !== null) {
+              inventoryData = record.data;
+            } else {
+              console.error('降级同步未知的数据格式:', typeof record.data);
+              return false;
+            }
+            
+            console.log('降级同步完成，数据类型:', typeof record.data);
+            return true;
+          } catch (parseError) {
+            console.error('降级同步数据解析失败:', parseError);
+            return false;
+          }
+        }
+        
+        return false;
+      } catch (error) {
+        console.error('降级同步失败:', error);
+        throw error;
       }
     }
     
