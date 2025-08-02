@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>库存销售管理系统</title>
+  <title>库存管理系统</title>
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
@@ -1781,22 +1781,44 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
       }
       
       try {
-        // 保存库存数据
-        const { data, error } = await supabase
+        // 首先检查是否已存在数据
+        const { data: existingData, error: selectError } = await supabase
           .from('inventory_data')
-          .upsert({
-            id: 1,
-            data: inventoryData,
-            images: productImages,
-            updated_at: new Date().toISOString()
-          });
-          
-        if (error) throw error;
+          .select('id')
+          .limit(1);
+        
+        if (selectError && selectError.code !== 'PGRST116') {
+          throw selectError;
+        }
+        
+        const dataToSave = {
+          data: inventoryData,
+          images: productImages,
+          updated_at: new Date().toISOString()
+        };
+        
+        if (existingData && existingData.length > 0) {
+          // 如果存在数据，使用update
+          const { data, error } = await supabase
+            .from('inventory_data')
+            .update(dataToSave)
+            .eq('id', existingData[0].id);
+            
+          if (error) throw error;
+        } else {
+          // 如果不存在数据，使用insert（不指定id，让数据库自动生成）
+          const { data, error } = await supabase
+            .from('inventory_data')
+            .insert(dataToSave);
+            
+          if (error) throw error;
+        }
         
         lastSyncTime = new Date().toISOString();
         console.log('数据已保存到云端');
         return true;
       } catch (error) {
+        console.error('云端保存失败:', error);
         console.log('云端保存失败，仅使用本地存储:', error.message);
         return false;
       }
@@ -1809,20 +1831,22 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
       }
       
       try {
+        // 获取最新的数据记录（按更新时间排序）
         const { data, error } = await supabase
           .from('inventory_data')
           .select('*')
-          .eq('id', 1)
-          .single();
+          .order('updated_at', { ascending: false })
+          .limit(1);
           
         if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
           throw error;
         }
         
-        if (data) {
-          inventoryData = data.data || [];
-          productImages = data.images || {};
-          lastSyncTime = data.updated_at;
+        if (data && data.length > 0) {
+          const record = data[0];
+          inventoryData = record.data || [];
+          productImages = record.images || {};
+          lastSyncTime = record.updated_at;
           console.log('从云端加载数据成功');
           return true;
         }
@@ -2135,12 +2159,21 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
       // 启动自动保存
       startAutoSave();
       
+      // 初始化图表
+      initializeCharts();
+      
+      // 初始化移动端功能
+      initializeMobileFeatures();
+      
       // 如果在线且Supabase已初始化，启动定期同步
       if (isOnline && supabaseInitialized) {
         // 立即进行一次同步（如果还没有云端数据）
         if (!hasCloudData) {
           setTimeout(() => syncWithCloud(), 2000);
         }
+        
+        // 设置定期同步（每5分钟）
+        setInterval(syncData, 300000);
       }
     });
     
@@ -2931,29 +2964,7 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
       }
     }
 
-    // 页面加载完成后初始化
-    document.addEventListener('DOMContentLoaded', async function() {
-      // 初始化Supabase
-      await initSupabase();
-      
-      // 加载数据
-      loadInventoryData();
-      loadPurchaseData();
-      loadSalesData();
-      loadLowStockData();
-      loadAnalysisData();
-      loadSuggestionData();
-      updateStatistics();
-      
-      // 初始化图表
-      initializeCharts();
-      
-      // 设置定时同步
-      setInterval(syncData, 300000); // 每5分钟同步一次
-      
-      // 初始化移动端功能
-      initializeMobileFeatures();
-    });
+    // 合并到主要的DOMContentLoaded事件监听器中
     
     // 初始化移动端功能
     function initializeMobileFeatures() {
