@@ -259,6 +259,74 @@
       .company-logo:hover {
         transform: scale(1.02);
       }
+      
+      /* 移动端竖屏优化 */
+      body {
+        font-size: 14px;
+        line-height: 1.4;
+      }
+      
+      /* 移动端表格卡片优化 */
+      .mobile-card {
+        margin-bottom: 12px;
+        padding: 12px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      
+      /* 移动端导航优化 */
+      #mobileNav {
+        max-height: 70vh;
+        overflow-y: auto;
+      }
+      
+      /* 移动端内容区域优化 */
+      main {
+        padding-top: 16px;
+        padding-bottom: 16px;
+      }
+      
+      /* 移动端卡片视图优化 */
+      #inventoryCardView,
+      .lg\\:hidden {
+        padding: 8px;
+      }
+      
+      /* 移动端按钮优化 */
+      .mobile-nav-item {
+        padding: 12px 16px;
+        margin-bottom: 4px;
+      }
+    }
+
+    /* 移动端竖屏专用样式 */
+    @media (max-width: 768px) and (orientation: portrait) {
+      /* 竖屏时的特殊优化 */
+      .tab-content {
+        min-height: calc(100vh - 200px);
+      }
+      
+      /* 卡片视图在竖屏时的优化 */
+      .mobile-card {
+        font-size: 13px;
+        padding: 10px;
+      }
+      
+      .mobile-card h3 {
+        font-size: 14px;
+        margin-bottom: 8px;
+      }
+      
+      .mobile-card p {
+        margin-bottom: 4px;
+        line-height: 1.3;
+      }
+      
+      /* 表格视图按钮在竖屏时的优化 */
+      button[onclick="toggleTableView()"] {
+        font-size: 12px;
+        padding: 8px 12px;
+      }
     }
 
     /* 统计卡片移动端优化 */
@@ -275,6 +343,24 @@
     @media (max-width: 768px) {
       .stat-card:hover {
         transform: none;
+      }
+    }
+    
+    /* 隐藏移动端指定按钮 */
+    @media (max-width: 768px) {
+      /* 隐藏移动端导入Excel按钮 */
+      button[onclick*="openUploadModal"] {
+        display: none !important;
+      }
+      
+      /* 隐藏移动端刷新按钮 */
+      button[onclick*="refreshData"] {
+        display: none !important;
+      }
+      
+      /* 隐藏移动端从云端加载按钮 */
+      button[onclick*="loadFromCloud"] {
+        display: none !important;
       }
     }
   </style>
@@ -513,7 +599,36 @@
 
   <!-- 主要内容区域 -->
   <main class="flex-1 px-4 sm:px-6 lg:px-8 py-6">
-      <!-- 统计面板 -->
+      <!-- 移动端简化统计面板 -->
+      <div class="lg:hidden grid grid-cols-2 gap-3 mb-4">
+        <!-- 总产品数 -->
+        <div class="bg-white rounded-lg shadow-sm p-3 stat-card">
+          <div class="flex items-center justify-between">
+            <div class="flex-1 min-w-0">
+              <p class="text-xs font-medium text-gray-400 mb-1 truncate">总产品数</p>
+              <p class="text-lg font-bold text-gray-800" id="totalProductsMobile">0</p>
+            </div>
+            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center ml-2">
+              <i class="fa fa-cubes text-sm text-blue-600"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- 低库存警告 -->
+        <div class="bg-white rounded-lg shadow-sm p-3 stat-card">
+          <div class="flex items-center justify-between">
+            <div class="flex-1 min-w-0">
+              <p class="text-xs font-medium text-gray-400 mb-1 truncate">低库存警告</p>
+              <p class="text-lg font-bold text-red-600" id="lowStockCountMobile">0</p>
+            </div>
+            <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center ml-2">
+              <i class="fa fa-exclamation-triangle text-sm text-red-600"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 桌面端统计面板 -->
       <div class="hidden lg:grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
         <!-- 总产品数 -->
         <div class="bg-white rounded-xl shadow-sm p-3 sm:p-6 stat-card">
@@ -1241,10 +1356,17 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
       const highStockCount = inventoryData.filter(item => (item['库存箱数'] || 0) > 20).length;
       const totalStock = inventoryData.reduce((sum, item) => sum + (item['库存箱数'] || 0), 0);
       
+      // 更新桌面端统计数据
       document.getElementById('totalProducts').textContent = totalProducts;
       document.getElementById('lowStockCount').textContent = lowStockCount;
       document.getElementById('highStockCount').textContent = highStockCount;
       document.getElementById('totalStock').textContent = totalStock;
+      
+      // 更新移动端统计数据
+      const totalProductsMobile = document.getElementById('totalProductsMobile');
+      const lowStockCountMobile = document.getElementById('lowStockCountMobile');
+      if (totalProductsMobile) totalProductsMobile.textContent = totalProducts;
+      if (lowStockCountMobile) lowStockCountMobile.textContent = lowStockCount;
     }
     
     // 更新类别下拉选项
@@ -2633,7 +2755,7 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
     // 创建移动端卡片
     function createMobileCard(data, type) {
       const card = document.createElement('div');
-      card.className = 'bg-white rounded-lg shadow-sm border border-gray-200 p-4';
+      card.className = 'mobile-card bg-white rounded-lg shadow-sm border border-gray-200 p-4';
       
       switch(type) {
         case 'inventory':
