@@ -746,7 +746,15 @@
         <!-- 采购记录标签页 -->
         <div id="purchase-tab" class="tab-content hidden">
           <div class="p-4 sm:p-6 border-b border-gray-100">
-            <h2 class="text-lg sm:text-xl font-semibold text-gray-800">采购记录</h2>
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <h2 class="text-lg sm:text-xl font-semibold text-gray-800 mb-2 sm:mb-0">采购记录</h2>
+              <div class="flex items-center space-x-2">
+                <button onclick="toggleTableView('purchase')" class="lg:hidden px-3 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors text-sm">
+                  <i class="fa fa-th-list mr-1"></i>
+                  <span id="purchaseViewToggleText">卡片视图</span>
+                </button>
+              </div>
+            </div>
           </div>
           
           <!-- 桌面端表格视图 -->
@@ -781,7 +789,15 @@
         <!-- 销售记录标签页 -->
         <div id="sales-tab" class="tab-content hidden">
           <div class="p-4 sm:p-6 border-b border-gray-100">
-            <h2 class="text-lg sm:text-xl font-semibold text-gray-800">销售记录</h2>
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <h2 class="text-lg sm:text-xl font-semibold text-gray-800 mb-2 sm:mb-0">销售记录</h2>
+              <div class="flex items-center space-x-2">
+                <button onclick="toggleTableView('sales')" class="lg:hidden px-3 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors text-sm">
+                  <i class="fa fa-th-list mr-1"></i>
+                  <span id="salesViewToggleText">卡片视图</span>
+                </button>
+              </div>
+            </div>
           </div>
           
           <!-- 桌面端表格视图 -->
@@ -856,7 +872,15 @@
         <!-- 数据分析标签页 -->
         <div id="analysis-tab" class="tab-content hidden">
           <div class="p-4 sm:p-6 border-b border-gray-100">
-            <h2 class="text-lg sm:text-xl font-semibold text-gray-800">数据分析</h2>
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <h2 class="text-lg sm:text-xl font-semibold text-gray-800 mb-2 sm:mb-0">数据分析</h2>
+              <div class="flex items-center space-x-2">
+                <button onclick="toggleTableView('analysis')" class="lg:hidden px-3 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors text-sm">
+                  <i class="fa fa-th-list mr-1"></i>
+                  <span id="analysisViewToggleText">图表视图</span>
+                </button>
+              </div>
+            </div>
           </div>
           <div class="p-4 sm:p-6">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
@@ -1092,6 +1116,9 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
       document.getElementById('pageTitle').textContent = titles[tabName].title;
       
       currentTab = tabName;
+      
+      // 更新移动端卡片视图
+      updateMobileCards();
     }
     
     // 加载Excel文件
@@ -2739,16 +2766,55 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
     // 切换表格/卡片视图
     let isCardView = false;
     
-    function toggleTableView() {
-      isCardView = !isCardView;
-      const toggleText = document.getElementById('viewToggleText');
+    function toggleTableView(tabType = 'inventory') {
+      if (tabType === 'inventory') {
+        isCardView = !isCardView;
+        const toggleText = document.getElementById('viewToggleText');
+        
+        if (isCardView) {
+          toggleText.textContent = '表格视图';
+          // 这里可以添加切换到卡片视图的逻辑
+        } else {
+          toggleText.textContent = '卡片视图';
+          // 这里可以添加切换到表格视图的逻辑
+        }
+        return;
+      }
       
-      if (isCardView) {
-        toggleText.textContent = '表格视图';
-        // 这里可以添加切换到卡片视图的逻辑
-      } else {
-        toggleText.textContent = '卡片视图';
-        // 这里可以添加切换到表格视图的逻辑
+      if (tabType === 'analysis') {
+        // 数据分析标签页的特殊处理
+        const chartView = document.querySelector('#analysis-tab .grid');
+        const toggleText = document.getElementById('analysisViewToggleText');
+        
+        if (chartView && toggleText) {
+          if (chartView.classList.contains('hidden')) {
+            chartView.classList.remove('hidden');
+            toggleText.textContent = '图表视图';
+          } else {
+            chartView.classList.add('hidden');
+            toggleText.textContent = '图表视图';
+          }
+        }
+        return;
+      }
+      
+      // 处理采购记录和销售记录标签页
+      const tableView = document.getElementById(`${tabType}TableView`);
+      const cardView = document.getElementById(`${tabType}CardView`);
+      const toggleText = document.getElementById(`${tabType}ViewToggleText`);
+      
+      if (tableView && cardView && toggleText) {
+        if (tableView.classList.contains('hidden')) {
+          // 显示表格视图
+          tableView.classList.remove('hidden');
+          cardView.classList.add('hidden');
+          toggleText.textContent = '卡片视图';
+        } else {
+          // 显示卡片视图
+          tableView.classList.add('hidden');
+          cardView.classList.remove('hidden');
+          toggleText.textContent = '表格视图';
+        }
       }
     }
     
@@ -2901,7 +2967,9 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
       const purchaseCardBody = document.getElementById('purchaseCardBody');
       if (purchaseCardBody) {
         purchaseCardBody.innerHTML = '';
-        purchaseData.forEach(item => {
+        // 筛选有进货量的产品
+        const purchaseItems = inventoryData.filter(item => (item['进货量'] || 0) > 0);
+        purchaseItems.forEach(item => {
           const card = createMobileCard(item, 'purchase');
           purchaseCardBody.appendChild(card);
         });
@@ -2911,7 +2979,9 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
       const salesCardBody = document.getElementById('salesCardBody');
       if (salesCardBody) {
         salesCardBody.innerHTML = '';
-        salesData.forEach(item => {
+        // 筛选有销售量的产品
+        const salesItems = inventoryData.filter(item => (item['出售数量'] || 0) > 0);
+        salesItems.forEach(item => {
           const card = createMobileCard(item, 'sales');
           salesCardBody.appendChild(card);
         });
