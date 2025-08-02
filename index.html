@@ -2637,30 +2637,32 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
       
       switch(type) {
         case 'inventory':
+          const stockBoxes = data['库存箱数'] || 0;
+          const stockQuantity = data['(=) Saldo Final'] || 0;
           card.innerHTML = `
             <div class="flex items-start justify-between mb-3">
               <div class="flex-1">
-                <h3 class="font-medium text-gray-900 text-sm mb-1">${data.productName || '未知产品'}</h3>
-                <span class="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">${data.category || '未分类'}</span>
+                <h3 class="font-medium text-gray-900 text-sm mb-1">${data['Apelido Produto'] || '未知产品'}</h3>
+                <span class="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">${data['类别'] || '未分类'}</span>
               </div>
-              ${data.productImage ? `<img src="${data.productImage}" alt="${data.productName}" class="w-12 h-12 object-cover rounded-lg ml-3">` : ''}
+              ${productImages[data['Apelido Produto']] ? `<img src="${productImages[data['Apelido Produto']]}" alt="${data['Apelido Produto']}" class="w-12 h-12 object-cover rounded-lg ml-3">` : ''}
             </div>
             <div class="grid grid-cols-2 gap-3 text-sm">
               <div class="flex justify-between">
                 <span class="text-gray-500">库存箱数:</span>
-                <span class="font-medium ${(data.stockBoxes || 0) < 5 ? 'text-red-600' : 'text-gray-900'}">${data.stockBoxes || 0}</span>
+                <span class="font-medium ${stockBoxes < 5 ? 'text-red-600' : 'text-gray-900'}">${stockBoxes}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-500">库存数量:</span>
-                <span class="font-medium">${data.stockQuantity || 0}</span>
+                <span class="font-medium">${stockQuantity}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-500">进货箱数:</span>
-                <span class="font-medium">${data.purchaseBoxes || 0}</span>
+                <span class="font-medium">${data['进货箱数'] || 0}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-500">已售箱数:</span>
-                <span class="font-medium">${data.soldBoxes || 0}</span>
+                <span class="font-medium">${data['已售箱数'] || 0}</span>
               </div>
             </div>
           `;
@@ -2670,26 +2672,27 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
           card.innerHTML = `
             <div class="flex items-start justify-between mb-3">
               <div class="flex-1">
-                <h3 class="font-medium text-gray-900 text-sm mb-1">${data.productName || '未知产品'}</h3>
-                <span class="inline-block px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">${data.category || '未分类'}</span>
+                <h3 class="font-medium text-gray-900 text-sm mb-1">${data['Apelido Produto'] || '未知产品'}</h3>
+                <span class="inline-block px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">${data['类别'] || '未分类'}</span>
               </div>
+              ${productImages[data['Apelido Produto']] ? `<img src="${productImages[data['Apelido Produto']]}" alt="${data['Apelido Produto']}" class="w-12 h-12 object-cover rounded-lg ml-3">` : ''}
             </div>
             <div class="grid grid-cols-2 gap-3 text-sm">
               <div class="flex justify-between">
                 <span class="text-gray-500">进货箱数:</span>
-                <span class="font-medium">${data.purchaseBoxes || 0}</span>
+                <span class="font-medium">${data['进货箱数'] || 0}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-gray-500">总进货量:</span>
-                <span class="font-medium">${data.totalPurchase || 0}</span>
+                <span class="text-gray-500">库存箱数:</span>
+                <span class="font-medium">${data['库存箱数'] || 0}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-gray-500">NF:</span>
-                <span class="font-medium">${data.nf || '-'}</span>
+                <span class="text-gray-500">价格:</span>
+                <span class="font-medium">R$ ${data['Preco'] || '0.00'}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-gray-500">到货日期:</span>
-                <span class="font-medium">${data.arrivalDate || '-'}</span>
+                <span class="text-gray-500">7天销售:</span>
+                <span class="font-medium">${data['Vendas 7 dias'] || 0}</span>
               </div>
             </div>
           `;
@@ -2699,55 +2702,58 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
           card.innerHTML = `
             <div class="flex items-start justify-between mb-3">
               <div class="flex-1">
-                <h3 class="font-medium text-gray-900 text-sm mb-1">${data.productName || '未知产品'}</h3>
-                <span class="inline-block px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">${data.category || '未分类'}</span>
+                <h3 class="font-medium text-gray-900 text-sm mb-1">${data['Apelido Produto'] || '未知产品'}</h3>
+                <span class="inline-block px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">${data['类别'] || '未分类'}</span>
               </div>
+              ${productImages[data['Apelido Produto']] ? `<img src="${productImages[data['Apelido Produto']]}" alt="${data['Apelido Produto']}" class="w-12 h-12 object-cover rounded-lg ml-3">` : ''}
             </div>
             <div class="grid grid-cols-2 gap-3 text-sm">
               <div class="flex justify-between">
                 <span class="text-gray-500">已售箱数:</span>
-                <span class="font-medium">${data.soldBoxes || 0}</span>
+                <span class="font-medium">${data['已售箱数'] || 0}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-500">出售数量:</span>
-                <span class="font-medium">${data.soldQuantity || 0}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-gray-500">出售百分比:</span>
-                <span class="font-medium">${data.soldPercentage || '0%'}</span>
+                <span class="font-medium">${data['出售数量'] || 0}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-500">7天销售:</span>
-                <span class="font-medium">${data.sales7Days || 0}</span>
+                <span class="font-medium">${data['Vendas 7 dias'] || 0}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-500">价格:</span>
+                <span class="font-medium">R$ ${data['Preco'] || '0.00'}</span>
               </div>
             </div>
           `;
           break;
           
         case 'lowstock':
+          const lowStockBoxes = data['库存箱数'] || 0;
           card.innerHTML = `
             <div class="flex items-start justify-between mb-3">
               <div class="flex-1">
-                <h3 class="font-medium text-gray-900 text-sm mb-1">${data.productName || '未知产品'}</h3>
+                <h3 class="font-medium text-gray-900 text-sm mb-1">${data['Apelido Produto'] || '未知产品'}</h3>
                 <span class="inline-block px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">低库存</span>
               </div>
+              ${productImages[data['Apelido Produto']] ? `<img src="${productImages[data['Apelido Produto']]}" alt="${data['Apelido Produto']}" class="w-12 h-12 object-cover rounded-lg ml-3">` : ''}
             </div>
             <div class="grid grid-cols-2 gap-3 text-sm">
               <div class="flex justify-between">
                 <span class="text-gray-500">库存箱数:</span>
-                <span class="font-medium text-red-600">${data.stockBoxes || 0}</span>
+                <span class="font-medium text-red-600">${lowStockBoxes}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-500">价格:</span>
-                <span class="font-medium">${data.price || '-'}</span>
+                <span class="font-medium">R$ ${data['Preco'] || '0.00'}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-gray-500">7天销售:</span>
-                <span class="font-medium">${data.sales7Days || 0}</span>
+                <span class="font-medium">${data['Vendas 7 dias'] || 0}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-gray-500">30天销售:</span>
-                <span class="font-medium">${data.sales30Days || 0}</span>
+                <span class="text-gray-500">库存数量:</span>
+                <span class="font-medium">${data['(=) Saldo Final'] || 0}</span>
               </div>
             </div>
           `;
@@ -2793,7 +2799,7 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
       const lowStockCardBody = document.getElementById('lowStockCardBody');
       if (lowStockCardBody) {
         lowStockCardBody.innerHTML = '';
-        const lowStockItems = inventoryData.filter(item => (item.stockBoxes || 0) < 5);
+        const lowStockItems = inventoryData.filter(item => (item['库存箱数'] || 0) < 5);
         lowStockItems.forEach(item => {
           const card = createMobileCard(item, 'lowstock');
           lowStockCardBody.appendChild(card);
@@ -3022,26 +3028,82 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
     // 同步搜索框内容
     function syncSearchBoxes() {
       const mobileSearchBox = document.getElementById('mobileSearchBox');
+      const mobileSearchInput = document.getElementById('mobileSearchInput');
       const desktopSearchBox = document.getElementById('desktopSearchBox');
       
+      // 同步桌面端和移动端搜索框
       if (mobileSearchBox && desktopSearchBox) {
         mobileSearchBox.addEventListener('input', function() {
           desktopSearchBox.value = this.value;
-          // 触发搜索功能
+          if (mobileSearchInput) mobileSearchInput.value = this.value;
           filterData();
         });
         
         desktopSearchBox.addEventListener('input', function() {
           mobileSearchBox.value = this.value;
-          // 触发搜索功能
+          if (mobileSearchInput) mobileSearchInput.value = this.value;
           filterData();
         });
       }
+      
+      // 同步移动端搜索输入框
+      if (mobileSearchInput) {
+        mobileSearchInput.addEventListener('input', function() {
+          if (mobileSearchBox) mobileSearchBox.value = this.value;
+          if (desktopSearchBox) desktopSearchBox.value = this.value;
+          filterData();
+        });
+      }
+      
+      // 点击外部关闭移动端搜索框
+      document.addEventListener('click', function(event) {
+        const mobileSearchContainer = document.getElementById('mobileSearchContainer');
+        const mobileSearchBtn = document.getElementById('mobileSearchBtn');
+        
+        // 关闭移动端搜索框
+        if (mobileSearchContainer && !mobileSearchContainer.classList.contains('hidden') && 
+            !mobileSearchContainer.contains(event.target) && 
+            !mobileSearchBtn.contains(event.target)) {
+          toggleMobileSearch();
+        }
+      });
     }
     
+    // 移动端搜索功能
+    function toggleMobileSearch() {
+      const searchContainer = document.getElementById('mobileSearchContainer');
+      const searchInput = document.getElementById('mobileSearchInput');
+      const searchBtn = document.getElementById('mobileSearchBtn');
+      
+      if (searchContainer.classList.contains('hidden')) {
+        // 显示搜索框
+        searchContainer.classList.remove('hidden');
+        searchBtn.classList.add('active');
+        
+        // 添加动画类并聚焦
+        setTimeout(() => {
+          searchContainer.classList.add('show');
+          searchInput.focus();
+        }, 10);
+      } else {
+        // 隐藏搜索框
+        searchContainer.classList.remove('show');
+        searchBtn.classList.remove('active');
+        
+        // 等待动画完成后隐藏元素
+        setTimeout(() => {
+          searchContainer.classList.add('hidden');
+          searchInput.value = '';
+          // 清除搜索结果
+          filterData();
+        }, 300);
+      }
+    }
+
     // 数据筛选功能
     function filterData() {
-      const searchTerm = document.getElementById('mobileSearchBox')?.value || 
+      const searchTerm = document.getElementById('mobileSearchInput')?.value || 
+                        document.getElementById('mobileSearchBox')?.value || 
                         document.getElementById('desktopSearchBox')?.value || '';
       const categoryFilter = document.getElementById('categoryFilter')?.value || '';
       
