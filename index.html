@@ -1089,15 +1089,23 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
     // 确保数据库表存在
 
     
-    // 标签页切换
+    // 标签页切换（优化版本）
     function showTab(tabName) {
+      // 如果是同一个标签页，避免重复更新
+      if (currentTab === tabName) {
+        return;
+      }
+      
       // 隐藏所有标签页
       document.querySelectorAll('.tab-content').forEach(tab => {
         tab.classList.add('hidden');
       });
       
       // 显示选中的标签页
-      document.getElementById(tabName + '-tab').classList.remove('hidden');
+      const targetTab = document.getElementById(tabName + '-tab');
+      if (targetTab) {
+        targetTab.classList.remove('hidden');
+      }
       
       // 更新导航状态 - 同时处理桌面版和移动版
       document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(item => {
@@ -1130,14 +1138,52 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
       
       // 安全检查：确保pageTitle元素存在
       const pageTitleElement = document.getElementById('pageTitle');
-      if (pageTitleElement) {
+      if (pageTitleElement && titles[tabName]) {
         pageTitleElement.textContent = titles[tabName].title;
       }
       
       currentTab = tabName;
       
-      // 更新移动端卡片视图
-      updateMobileCards();
+      // 智能更新移动端卡片视图
+      updateMobileCardsIfNeeded(tabName);
+    }
+    
+    // 智能更新移动端卡片（仅在需要时更新）
+    let lastMobileCardsUpdate = 0;
+    let mobileCardsCache = {};
+    
+    function updateMobileCardsIfNeeded(tabName) {
+      // 检测是否为移动设备
+      const isMobile = window.innerWidth <= 768;
+      if (!isMobile) {
+        return; // 桌面端不需要更新移动端卡片
+      }
+      
+      // 检查数据是否有变化
+      const dataHash = JSON.stringify(inventoryData).length;
+      const cacheKey = `${tabName}_${dataHash}`;
+      
+      // 如果缓存中有相同的数据，跳过更新
+      if (mobileCardsCache[cacheKey] && (Date.now() - lastMobileCardsUpdate < 1000)) {
+        return;
+      }
+      
+      // 检测设备性能
+      const deviceInfo = detectDeviceCapabilities();
+      
+      // 如果是低性能设备，延迟更新
+      if (deviceInfo.isMobile && inventoryData.length > 30) {
+        setTimeout(() => {
+          updateMobileCards();
+          mobileCardsCache[cacheKey] = true;
+          lastMobileCardsUpdate = Date.now();
+        }, 150); // 延迟150ms更新
+      } else {
+        // 高性能设备立即更新
+        updateMobileCards();
+        mobileCardsCache[cacheKey] = true;
+        lastMobileCardsUpdate = Date.now();
+      }
     }
     
     // 加载Excel文件
@@ -1197,6 +1243,8 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
             updateStatistics();
             saveToLocalStorage(); // 保存数据到本地存储
             closeUploadModal();
+            // 清理移动端卡片缓存
+            mobileCardsCache = {};
             
             alert('Excel文件导入成功！');
           } catch (error) {
@@ -2117,6 +2165,8 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
         if (saveSuccess) {
           updateSyncStatus('同步成功', 'success');
           console.log('本地数据已成功同步到云端');
+          // 清理移动端卡片缓存，确保下次切换标签页时能正确更新
+          mobileCardsCache = {};
         } else {
           updateSyncStatus('同步失败，数据仍保存在本地', 'warning');
         }
@@ -2757,6 +2807,8 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
           updateStatistics();
           saveToLocalStorage(); // 同时保存到本地
           updateSyncStatus('从云端加载数据成功', 'success');
+          // 清理移动端卡片缓存
+          mobileCardsCache = {};
           
           if (deviceInfo.isMobile) {
             alert('数据已从云端成功加载！\n(使用移动端优化模式)');
@@ -3063,52 +3115,231 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
       return card;
     }
     
-    // 更新移动端卡片视图
+    // 防抖变量
+    let updateMobileCardsTimeout = null;
+    let lastUpdateTime = 0;
+    
+    // 更新移动端卡片视图（优化版本）
     function updateMobileCards() {
+      // 防抖机制：避免频繁调用
+      const now = Date.now();
+      if (now - lastUpdateTime < 100) { // 100ms内只允许一次更新
+        if (updateMobileCardsTimeout) {
+          clearTimeout(updateMobileCardsTimeout);
+        }
+        updateMobileCardsTimeout = setTimeout(updateMobileCards, 100);
+        return;
+      }
+      lastUpdateTime = now;
+      
+      // 检测设备性能
+      const deviceInfo = detectDeviceCapabilities();
+      const isLowPerformance = deviceInfo.isMobile || deviceInfo.memoryLimit;
+      
+      // 如果是低性能设备且数据量大，使用延迟加载
+      if (isLowPerformance && inventoryData.length > 50) {
+        updateMobileCardsLazy();
+        return;
+      }
+      
+      // 使用文档片段优化DOM操作
+      updateMobileCardsOptimized();
+    }
+    
+    // 优化的移动端卡片更新函数
+    function updateMobileCardsOptimized() {
       // 更新库存信息卡片
       const inventoryCardBody = document.getElementById('inventoryCardBody');
       if (inventoryCardBody) {
-        inventoryCardBody.innerHTML = '';
+        const fragment = document.createDocumentFragment();
         inventoryData.forEach(item => {
           const card = createMobileCard(item, 'inventory');
-          inventoryCardBody.appendChild(card);
+          fragment.appendChild(card);
         });
+        inventoryCardBody.innerHTML = '';
+        inventoryCardBody.appendChild(fragment);
       }
       
       // 更新采购记录卡片
       const purchaseCardBody = document.getElementById('purchaseCardBody');
       if (purchaseCardBody) {
-        purchaseCardBody.innerHTML = '';
+        const fragment = document.createDocumentFragment();
         // 筛选有进货量的产品
         const purchaseItems = inventoryData.filter(item => (item['进货量'] || 0) > 0);
         purchaseItems.forEach(item => {
           const card = createMobileCard(item, 'purchase');
-          purchaseCardBody.appendChild(card);
+          fragment.appendChild(card);
         });
+        purchaseCardBody.innerHTML = '';
+        purchaseCardBody.appendChild(fragment);
       }
       
       // 更新销售记录卡片
       const salesCardBody = document.getElementById('salesCardBody');
       if (salesCardBody) {
-        salesCardBody.innerHTML = '';
+        const fragment = document.createDocumentFragment();
         // 筛选有销售量的产品
         const salesItems = inventoryData.filter(item => (item['出售数量'] || 0) > 0);
         salesItems.forEach(item => {
           const card = createMobileCard(item, 'sales');
-          salesCardBody.appendChild(card);
+          fragment.appendChild(card);
         });
+        salesCardBody.innerHTML = '';
+        salesCardBody.appendChild(fragment);
       }
       
       // 更新低库存卡片
       const lowStockCardBody = document.getElementById('lowStockCardBody');
       if (lowStockCardBody) {
-        lowStockCardBody.innerHTML = '';
+        const fragment = document.createDocumentFragment();
         const lowStockItems = inventoryData.filter(item => (item['库存箱数'] || 0) < 5);
         lowStockItems.forEach(item => {
           const card = createMobileCard(item, 'lowstock');
-          lowStockCardBody.appendChild(card);
+          fragment.appendChild(card);
         });
+        lowStockCardBody.innerHTML = '';
+        lowStockCardBody.appendChild(fragment);
       }
+    }
+    
+    // 延迟加载版本（用于低性能设备）
+    function updateMobileCardsLazy() {
+      const BATCH_SIZE = 10; // 每批处理10个项目
+      
+      // 更新库存信息卡片（分批处理）
+      const inventoryCardBody = document.getElementById('inventoryCardBody');
+      if (inventoryCardBody) {
+        inventoryCardBody.innerHTML = '';
+        let index = 0;
+        
+        function processBatch() {
+          const fragment = document.createDocumentFragment();
+          const endIndex = Math.min(index + BATCH_SIZE, inventoryData.length);
+          
+          for (let i = index; i < endIndex; i++) {
+            const card = createMobileCard(inventoryData[i], 'inventory');
+            fragment.appendChild(card);
+          }
+          
+          inventoryCardBody.appendChild(fragment);
+          index = endIndex;
+          
+          if (index < inventoryData.length) {
+            requestAnimationFrame(processBatch);
+          }
+        }
+        
+        processBatch();
+      }
+      
+      // 其他卡片类型也使用类似的分批处理
+      setTimeout(() => {
+        updateOtherCardTypesLazy();
+      }, 50);
+    }
+    
+    // 延迟更新其他卡片类型
+    function updateOtherCardTypesLazy() {
+      const BATCH_SIZE = 10;
+      
+      // 更新采购记录卡片
+      const purchaseCardBody = document.getElementById('purchaseCardBody');
+      if (purchaseCardBody) {
+        purchaseCardBody.innerHTML = '';
+        const purchaseItems = inventoryData.filter(item => (item['进货量'] || 0) > 0);
+        let index = 0;
+        
+        function processPurchaseBatch() {
+          const fragment = document.createDocumentFragment();
+          const endIndex = Math.min(index + BATCH_SIZE, purchaseItems.length);
+          
+          for (let i = index; i < endIndex; i++) {
+            const card = createMobileCard(purchaseItems[i], 'purchase');
+            fragment.appendChild(card);
+          }
+          
+          purchaseCardBody.appendChild(fragment);
+          index = endIndex;
+          
+          if (index < purchaseItems.length) {
+            requestAnimationFrame(processPurchaseBatch);
+          }
+        }
+        
+        if (purchaseItems.length > 0) {
+          processPurchaseBatch();
+        }
+      }
+      
+      // 继续处理销售和低库存卡片
+      setTimeout(() => {
+        updateSalesAndLowStockCardsLazy();
+      }, 50);
+    }
+    
+    // 延迟更新销售和低库存卡片
+    function updateSalesAndLowStockCardsLazy() {
+      const BATCH_SIZE = 10;
+      
+      // 更新销售记录卡片
+      const salesCardBody = document.getElementById('salesCardBody');
+      if (salesCardBody) {
+        salesCardBody.innerHTML = '';
+        const salesItems = inventoryData.filter(item => (item['出售数量'] || 0) > 0);
+        let index = 0;
+        
+        function processSalesBatch() {
+          const fragment = document.createDocumentFragment();
+          const endIndex = Math.min(index + BATCH_SIZE, salesItems.length);
+          
+          for (let i = index; i < endIndex; i++) {
+            const card = createMobileCard(salesItems[i], 'sales');
+            fragment.appendChild(card);
+          }
+          
+          salesCardBody.appendChild(fragment);
+          index = endIndex;
+          
+          if (index < salesItems.length) {
+            requestAnimationFrame(processSalesBatch);
+          }
+        }
+        
+        if (salesItems.length > 0) {
+          processSalesBatch();
+        }
+      }
+      
+      // 更新低库存卡片
+      setTimeout(() => {
+        const lowStockCardBody = document.getElementById('lowStockCardBody');
+        if (lowStockCardBody) {
+          lowStockCardBody.innerHTML = '';
+          const lowStockItems = inventoryData.filter(item => (item['库存箱数'] || 0) < 5);
+          let index = 0;
+          
+          function processLowStockBatch() {
+            const fragment = document.createDocumentFragment();
+            const endIndex = Math.min(index + BATCH_SIZE, lowStockItems.length);
+            
+            for (let i = index; i < endIndex; i++) {
+              const card = createMobileCard(lowStockItems[i], 'lowstock');
+              fragment.appendChild(card);
+            }
+            
+            lowStockCardBody.appendChild(fragment);
+            index = endIndex;
+            
+            if (index < lowStockItems.length) {
+              requestAnimationFrame(processLowStockBatch);
+            }
+          }
+          
+          if (lowStockItems.length > 0) {
+            processLowStockBatch();
+          }
+        }
+      }, 50);
     }
     
     // 建议筛选功能
