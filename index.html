@@ -58,13 +58,15 @@
     }
     
     .nav-item:hover {
-      background-color: #e6f2ff;
+      background-color: white;
       transform: translateX(5px);
     }
     
     .nav-item.active {
       background-color: white;
       border-left: 4px solid #3a7bd5;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      font-weight: 600;
     }
     
     /* 根据图标颜色设置对应的active状态颜色 */
@@ -169,14 +171,16 @@
     }
     
     .mobile-nav-item.active {
-      background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+      background-color: white;
       color: #374151;
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(156, 163, 175, 0.3);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      border: 1px solid #e5e7eb;
+      font-weight: 600;
     }
     
     .mobile-nav-item:hover:not(.active) {
-      background-color: #e0f2fe;
+      background-color: white;
       transform: translateY(-1px);
     }
 
@@ -440,7 +444,7 @@
           <button onclick="openUploadModal()" class="px-4 py-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors">
             <i class="fa fa-upload mr-2"></i>导入Excel
           </button>
-          <button onclick="refreshData()" class="px-4 py-2 bg-orange-100 text-orange-600 rounded-lg hover:bg-orange-200 transition-colors">
+          <button onclick="refreshData()" class="px-4 py-2 bg-orange-100 text-orange-600 rounded-lg hover:bg-orange-200 transition-colors" style="display: none;">
             <i class="fa fa-refresh mr-2"></i>刷新
           </button>
           
@@ -458,7 +462,7 @@
             </button>
             
             <!-- 从云端加载按钮 -->
-            <button onclick="loadFromCloud()" id="loadBtn" class="px-3 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors text-sm">
+            <button onclick="loadFromCloud()" id="loadBtn" class="px-3 py-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors text-sm" style="display: none;">
               <i class="fa fa-cloud-download mr-1"></i>加载
             </button>
             
@@ -500,23 +504,23 @@
     <nav class="hidden md:block border-t border-gray-100">
       <div class="px-4 sm:px-6 lg:px-8">
         <div class="flex space-x-1 py-3 overflow-x-auto mobile-nav-scroll">
-          <a href="#" onclick="showTab('inventory')" id="nav-inventory" class="mobile-nav-item active flex items-center px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap">
+          <a href="#" onclick="showTab('inventory')" id="nav-inventory" class="nav-item active flex items-center px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap">
             <i class="fa fa-archive mr-2 text-blue-500"></i>
             <span>库存信息</span>
           </a>
-          <a href="#" onclick="showTab('purchase')" id="nav-purchase" class="mobile-nav-item flex items-center px-4 py-2 text-sm font-medium text-gray-600 rounded-lg whitespace-nowrap">
+          <a href="#" onclick="showTab('purchase')" id="nav-purchase" class="nav-item flex items-center px-4 py-2 text-sm font-medium text-gray-600 rounded-lg whitespace-nowrap">
             <i class="fa fa-shopping-cart mr-2 text-green-500"></i>
             <span>采购记录</span>
           </a>
-          <a href="#" onclick="showTab('sales')" id="nav-sales" class="mobile-nav-item flex items-center px-4 py-2 text-sm font-medium text-gray-600 rounded-lg whitespace-nowrap">
+          <a href="#" onclick="showTab('sales')" id="nav-sales" class="nav-item flex items-center px-4 py-2 text-sm font-medium text-gray-600 rounded-lg whitespace-nowrap">
             <i class="fa fa-line-chart mr-2 text-orange-500"></i>
             <span>销售记录</span>
           </a>
-          <a href="#" onclick="showTab('lowstock')" id="nav-lowstock" class="mobile-nav-item flex items-center px-4 py-2 text-sm font-medium text-gray-600 rounded-lg whitespace-nowrap">
+          <a href="#" onclick="showTab('lowstock')" id="nav-lowstock" class="nav-item flex items-center px-4 py-2 text-sm font-medium text-gray-600 rounded-lg whitespace-nowrap">
             <i class="fa fa-exclamation-triangle mr-2 text-red-500"></i>
             <span>低库存</span>
           </a>
-          <a href="#" onclick="showTab('analysis')" id="nav-analysis" class="mobile-nav-item flex items-center px-4 py-2 text-sm font-medium text-gray-600 rounded-lg whitespace-nowrap">
+          <a href="#" onclick="showTab('analysis')" id="nav-analysis" class="nav-item flex items-center px-4 py-2 text-sm font-medium text-gray-600 rounded-lg whitespace-nowrap">
             <i class="fa fa-bar-chart mr-2 text-purple-500"></i>
             <span>数据分析</span>
           </a>
@@ -554,7 +558,7 @@
             <i class="fa fa-upload mr-3"></i>
             <span>导入Excel</span>
           </button>
-          <button onclick="refreshData(); closeMobileMenu()" class="w-full flex items-center px-4 py-3 text-sm font-medium text-orange-600 bg-orange-50 rounded-lg">
+          <button onclick="refreshData(); closeMobileMenu()" class="w-full flex items-center px-4 py-3 text-sm font-medium text-orange-600 bg-orange-50 rounded-lg" style="display: none;">
             <i class="fa fa-refresh mr-3"></i>
             <span>刷新数据</span>
           </button>
@@ -575,7 +579,7 @@
               <i class="fa fa-cloud mr-3"></i>
               <span>手动同步</span>
             </button>
-            <button onclick="loadFromCloud(); closeMobileMenu()" id="loadBtnMobile" class="w-full flex items-center px-4 py-3 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg mb-2">
+            <button onclick="loadFromCloud(); closeMobileMenu()" id="loadBtnMobile" class="w-full flex items-center px-4 py-3 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg mb-2" style="display: none;">
               <i class="fa fa-cloud-download mr-3"></i>
               <span>从云端加载</span>
             </button>
@@ -1070,7 +1074,7 @@
 
 CREATE TABLE inventory_data (
   id SERIAL PRIMARY KEY,
-  user_id TEXT,
+  
   data JSONB,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -1095,14 +1099,25 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
       // 显示选中的标签页
       document.getElementById(tabName + '-tab').classList.remove('hidden');
       
-      // 更新导航状态
-      document.querySelectorAll('.nav-item').forEach(item => {
+      // 更新导航状态 - 同时处理桌面版和移动版
+      document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(item => {
         item.classList.remove('active');
         item.classList.add('text-gray-600');
       });
       
-      document.getElementById('nav-' + tabName).classList.add('active');
-      document.getElementById('nav-' + tabName).classList.remove('text-gray-600');
+      // 更新桌面版导航
+      const desktopNav = document.getElementById('nav-' + tabName);
+      if (desktopNav) {
+        desktopNav.classList.add('active');
+        desktopNav.classList.remove('text-gray-600');
+      }
+      
+      // 更新移动版导航
+      const mobileNav = document.getElementById('nav-' + tabName + '-mobile');
+      if (mobileNav) {
+        mobileNav.classList.add('active');
+        mobileNav.classList.remove('text-gray-600');
+      }
       
       // 更新页面标题
       const titles = {
@@ -1113,7 +1128,11 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
         'analysis': { title: '数据分析', subtitle: '深度数据分析和报告' }
       };
       
-      document.getElementById('pageTitle').textContent = titles[tabName].title;
+      // 安全检查：确保pageTitle元素存在
+      const pageTitleElement = document.getElementById('pageTitle');
+      if (pageTitleElement) {
+        pageTitleElement.textContent = titles[tabName].title;
+      }
       
       currentTab = tabName;
       
@@ -1201,6 +1220,7 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
     // 更新库存表格
     function updateInventoryTable() {
       const tbody = document.getElementById('inventoryTableBody');
+      if (!tbody) return;
       tbody.innerHTML = '';
       
       inventoryData.forEach(item => {
@@ -1233,6 +1253,7 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
     // 更新采购表格 - 参考Python版本的复杂逻辑
     function updatePurchaseTable() {
       const tbody = document.getElementById('purchaseTableBody');
+      if (!tbody) return;
       tbody.innerHTML = '';
       
       inventoryData.forEach(item => {
@@ -1325,6 +1346,7 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
     // 更新销售表格
     function updateSalesTable() {
       const tbody = document.getElementById('salesTableBody');
+      if (!tbody) return;
       tbody.innerHTML = '';
       
       inventoryData.forEach(item => {
@@ -1350,6 +1372,7 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
     // 更新低库存表格
     function updateLowStockTable() {
       const tbody = document.getElementById('lowStockTableBody');
+      if (!tbody) return;
       tbody.innerHTML = '';
       
       // 筛选库存箱数小于5的产品
@@ -1383,11 +1406,16 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
       const highStockCount = inventoryData.filter(item => (item['库存箱数'] || 0) > 20).length;
       const totalStock = inventoryData.reduce((sum, item) => sum + (item['库存箱数'] || 0), 0);
       
-      // 更新桌面端统计数据
-      document.getElementById('totalProducts').textContent = totalProducts;
-      document.getElementById('lowStockCount').textContent = lowStockCount;
-      document.getElementById('highStockCount').textContent = highStockCount;
-      document.getElementById('totalStock').textContent = totalStock;
+      // 更新桌面端统计数据 - 添加安全检查
+      const totalProductsEl = document.getElementById('totalProducts');
+      const lowStockCountEl = document.getElementById('lowStockCount');
+      const highStockCountEl = document.getElementById('highStockCount');
+      const totalStockEl = document.getElementById('totalStock');
+      
+      if (totalProductsEl) totalProductsEl.textContent = totalProducts;
+      if (lowStockCountEl) lowStockCountEl.textContent = lowStockCount;
+      if (highStockCountEl) highStockCountEl.textContent = highStockCount;
+      if (totalStockEl) totalStockEl.textContent = totalStock;
       
       // 更新移动端统计数据
       const totalProductsMobile = document.getElementById('totalProductsMobile');
@@ -1399,6 +1427,7 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
     // 更新类别下拉选项
     function updateCategoryOptions() {
       const categorySelect = document.getElementById('categoryFilter');
+      if (!categorySelect) return;
       const categories = new Set();
       
       // 收集所有类别
@@ -1423,16 +1452,22 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
     
     // 搜索产品（修改后的版本）
     function searchProducts() {
-      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-      const selectedCategory = document.getElementById('categoryFilter').value;
+      const searchInput = document.getElementById('searchInput');
+      const categoryFilter = document.getElementById('categoryFilter');
+      if (!searchInput || !categoryFilter) return;
+      
+      const searchTerm = searchInput.value.toLowerCase();
+      const selectedCategory = categoryFilter.value;
       const rows = document.querySelectorAll('.table-row');
       
       // 显示/隐藏清除按钮
       const clearBtn = document.getElementById('clearSearchBtn');
-      if (searchTerm || selectedCategory) {
-        clearBtn.style.display = 'flex';
-      } else {
-        clearBtn.style.display = 'none';
+      if (clearBtn) {
+        if (searchTerm || selectedCategory) {
+          clearBtn.style.display = 'flex';
+        } else {
+          clearBtn.style.display = 'none';
+        }
       }
       
       rows.forEach(row => {
@@ -1458,15 +1493,20 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
       });
       
       // 更新图表，传递搜索词
-      const originalSearchTerm = document.getElementById('searchInput').value;
+      const searchInputForChart = document.getElementById('searchInput');
+      const originalSearchTerm = searchInputForChart ? searchInputForChart.value : '';
       updateCharts(originalSearchTerm || null);
     }
     
     // 清除搜索
     function clearSearch() {
-      document.getElementById('searchInput').value = '';
-      document.getElementById('categoryFilter').value = '';
-      document.getElementById('clearSearchBtn').style.display = 'none';
+      const searchInput = document.getElementById('searchInput');
+      const categoryFilter = document.getElementById('categoryFilter');
+      const clearBtn = document.getElementById('clearSearchBtn');
+      
+      if (searchInput) searchInput.value = '';
+      if (categoryFilter) categoryFilter.value = '';
+      if (clearBtn) clearBtn.style.display = 'none';
       
       // 显示所有行
       const rows = document.querySelectorAll('.table-row');
@@ -1535,6 +1575,8 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
       const salesTrend = getSalesTrend();
       const salesCtx = document.getElementById('salesChart');
       
+      if (!salesCtx) return;
+      
       if (window.salesChart instanceof Chart) {
         window.salesChart.destroy();
       }
@@ -1578,6 +1620,8 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
       // 库存进销对比图表
       const comparisonData = getInventoryComparisonData(productFilter);
       const comparisonCtx = document.getElementById('inventoryComparisonChart');
+      
+      if (!comparisonCtx) return;
       
       if (window.inventoryComparisonChart instanceof Chart) {
         window.inventoryComparisonChart.destroy();
@@ -1672,6 +1716,7 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
     // 更新分析表格（补货建议）
     function updateAnalysisTable() {
       const tbody = document.getElementById('suggestionsTableBody');
+      if (!tbody) return;
       tbody.innerHTML = '';
       
       inventoryData.forEach(item => {
@@ -2836,12 +2881,14 @@ CREATE POLICY "Allow all operations" ON inventory_data FOR ALL USING (true);
         isCardView = !isCardView;
         const toggleText = document.getElementById('viewToggleText');
         
-        if (isCardView) {
-          toggleText.textContent = '表格视图';
-          // 这里可以添加切换到卡片视图的逻辑
-        } else {
-          toggleText.textContent = '卡片视图';
-          // 这里可以添加切换到表格视图的逻辑
+        if (toggleText) {
+          if (isCardView) {
+            toggleText.textContent = '表格视图';
+            // 这里可以添加切换到卡片视图的逻辑
+          } else {
+            toggleText.textContent = '卡片视图';
+            // 这里可以添加切换到表格视图的逻辑
+          }
         }
         return;
       }
